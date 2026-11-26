@@ -278,6 +278,7 @@ export interface ArtifactReader {
     | "bflt"
     | "esp-flash-image"
     | "fit"
+    | "windows-prefetch"
     | "ntfs-mft"
     | "file";
   entries(
