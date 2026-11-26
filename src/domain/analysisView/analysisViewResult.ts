@@ -277,6 +277,7 @@ import { nativeValueTraceSummaryViewResultSchema } from "./summarySchemas/native
 import { nugetNupkgSummaryViewResultSchema } from "./summarySchemas/nugetNupkgSummarySchema.js";
 import { objdumpSummaryViewResultSchema } from "./summarySchemas/objdumpSummarySchema.js";
 import { ociImageLayoutSummaryViewResultSchema } from "./summarySchemas/ociImageLayoutSummarySchema.js";
+import { otlpTraceSummaryViewResultSchema } from "./summarySchemas/otlpTraceSummarySchema.js";
 import { pcapCaptureSummaryViewResultSchema } from "./summarySchemas/pcapCaptureSummarySchema.js";
 import {
   playwrightTracePageViewResultSchema,
@@ -379,6 +380,7 @@ export {
   nugetNupkgSummaryViewResultSchema,
   objdumpSummaryViewResultSchema,
   ociImageLayoutSummaryViewResultSchema,
+  otlpTraceSummaryViewResultSchema,
   pcapCaptureSummaryViewResultSchema,
   playwrightTracePageViewResultSchema,
   playwrightTraceSummaryViewResultSchema,
@@ -453,6 +455,7 @@ const viewResultBase = {
     "trace_native_values",
     "match_native_functions",
     "procedure_references",
+    "inspect_otlp_trace",
   ]),
 } as const;
 
@@ -777,6 +780,7 @@ export const analysisViewResultSchema = z.discriminatedUnion("kind", [
     nativeValueTraceSummaryViewResultSchema,
     erlangBeamSummaryViewResultSchema,
     devicetreeSummaryViewResultSchema,
+    otlpTraceSummaryViewResultSchema,
     uefiFirmwareSummaryViewResultSchema,
     uefiExtractionSummaryViewResultSchema,
     pythonPycSummaryViewResultSchema,
