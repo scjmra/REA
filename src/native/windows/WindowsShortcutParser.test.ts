@@ -1622,3 +1622,117 @@ it("leaves non-ASCII ANSI extensions uninterpreted", async () => {
     extension: ".ア",
   });
 });
+
+/**
+ * Win32 strips trailing spaces and periods from a name before it opens the file, so a
+ * shortcut that stores `app.exe.` still reaches `app.exe`. A `\\?\` path skips that pass,
+ * and only a filesystem field gets it: a `RelativePath` URL keeps its own reading.
+ */
+const trimmedExtensionFor = async (localBasePath: string) => {
+  const report = await parse(
+    windowsShortcutBytes({ iconLocation: "", linkInfo: { localBasePath } }),
+  );
+  const found = report.observations.find(
+    ({ kind }) => kind === "target_extension",
+  );
+  return found?.kind === "target_extension" ? found.extension : undefined;
+};
+
+it.each([
+  ["C:\\Tools\\app.exe.", ".exe"],
+  ["C:\\Tools\\app.exe ", ".exe"],
+  ["C:\\Tools\\app.exe. .", ".exe"],
+  ["C:\\Tools\\report.", null],
+] as const)(
+  "derives the extension of %s as Win32 opens it",
+  async (path, expected) => {
+    expect(await trimmedExtensionFor(path)).toBe(expected);
+  },
+);
+
+it.each(["\\\\?\\C:\\Tools\\app.exe.", "C:\\Tools\\%NAME%.exe."] as const)(
+  "keeps %s as written, because the trim is skipped",
+  async (path) => {
+    expect(await trimmedExtensionFor(path)).toBeNull();
+  },
+);
+
+/**
+ * The extension belongs to the joined target, not to CommonPathSuffix alone:
+ *
+ *   LocalBasePath = \\?\C:\Tools, suffix = app.exe.  -> no extension (a device path keeps the period)
+ *   LocalBasePath = C:\Tools,     suffix = app.exe.  -> .exe
+ *   LocalBasePath = C:\Tools,     suffix = report.   -> null (trimmed to `report`)
+ */
+it("derives the extension from the joined LinkInfo target", async () => {
+  const extensionFor = async (
+    localBasePath: string,
+    commonPathSuffix: string,
+  ) => {
+    const report = await parse(
+      windowsShortcutBytes({
+        linkInfo: { localBasePath, commonPathSuffix },
+        relativePath: "",
+        idList: null,
+        iconLocation: "",
+      }),
+    );
+    const found = report.observations.find(
+      ({ kind }) => kind === "target_extension",
+    );
+    return found?.kind === "target_extension" ? found.extension : undefined;
+  };
+  expect(await extensionFor("\\\\?\\C:\\Tools", "app.exe.")).toBeNull();
+  expect(await extensionFor("C:\\Tools", "app.exe.")).toBe(".exe");
+  expect(await extensionFor("C:\\Tools", "report.")).toBeNull();
+});
+
+/**
+ * A URL recorded in RelativePath keeps its own trailing dot: Win32 name trimming
+ * applies only to text the host would open as a Win32 path.
+ */
+it("keeps a URL's trailing dot out of the published target extension", async () => {
+  const extensionFor = async (relativePath: string) => {
+    const report = await parse(
+      windowsShortcutBytes({
+        linkInfo: null,
+        relativePath,
+        idList: null,
+        iconLocation: "",
+      }),
+    );
+    const found = report.observations.find(
+      ({ kind }) => kind === "target_extension",
+    );
+    return found?.kind === "target_extension" ? found.extension : undefined;
+  };
+  // The dot is part of the HTTP resource name, so no extension is published.
+  expect(await extensionFor("https://example.test/app.exe.")).toBeNull();
+  // A Win32 relative name is still trimmed the way Win32 opens it.
+  expect(await extensionFor("app.exe.")).toBe(".exe");
+});
+
+/**
+ * `//host/path` is either a scheme-relative URL or a forward-slash UNC path, and
+ * the bytes carry nothing that separates them, so the name stays as written: no
+ * Win32 trimming means no extension is published for a trailing period.
+ */
+it("leaves a scheme-relative target's name as written", async () => {
+  const extensionFor = async (relativePath: string) => {
+    const report = await parse(
+      windowsShortcutBytes({
+        linkInfo: null,
+        relativePath,
+        idList: null,
+        iconLocation: "",
+      }),
+    );
+    const found = report.observations.find(
+      ({ kind }) => kind === "target_extension",
+    );
+    return found?.kind === "target_extension" ? found.extension : undefined;
+  };
+  expect(await extensionFor("//example.test/app.exe.")).toBeNull();
+  // Without a trailing period the stored name still yields its extension.
+  expect(await extensionFor("//example.test/app.exe")).toBe(".exe");
+});

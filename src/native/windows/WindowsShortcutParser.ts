@@ -265,9 +265,18 @@ const driveType = (
   name: DRIVE_TYPES[raw] ?? null,
 });
 
-const extensionOf = (path: string, ansi: boolean): string | null => {
+const extensionOf = (
+  path: string,
+  ansi: boolean,
+  win32Names: boolean,
+): string | null => {
   if (path.length === 0) return null;
-  const normalized = path.replaceAll("/", "\\");
+  // Only a source with Win32 path semantics opens the name through Win32, so only
+  // there does a trailing period or space leave the extension unchanged. A URL
+  // recorded in the same field keeps its own trailing dot.
+  const normalized = win32Names
+    ? fileNameSegment(path.replaceAll("/", "\\"))
+    : path.replaceAll("/", "\\");
   const slash = normalized.lastIndexOf("\\");
   const name = slash === -1 ? normalized : normalized.slice(slash + 1);
   const dot = name.lastIndexOf(".");
@@ -281,6 +290,20 @@ const foldPath = (path: string): string =>
 
 /** `\\?\` and `\\.\` paths reach Windows verbatim, so their segments are kept as written. */
 const DEVICE_PATH = /^\\\\[?.]\\/u;
+
+/**
+ * The final segment as Win32 opens it.
+ *
+ * Win32 strips trailing spaces and periods from a name before it opens the file, so
+ * `app.exe.` and `app.exe ` both open `app.exe`, while `report.` opens `report`. A `\\?\`
+ * path skips that pass, and an unexpanded `%VAR%` may expand to one, so both keep their text.
+ */
+const fileNameSegment = (path: string): string => {
+  if (DEVICE_PATH.test(path) || hasUnexpandedVariable(path)) return path;
+  const at = Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) + 1;
+  const name = path.slice(at).replace(/[. ]+$/u, "");
+  return name === "" ? path : `${path.slice(0, at)}${name}`;
+};
 
 /**
  * Compare form of a full path, from the text alone: no path is ever opened.
@@ -308,6 +331,16 @@ const normalizePath = (path: string): string => {
     ? `\\\\${[...root, ...segments].join("\\")}`
     : `${root[0] ?? ""}\\${segments.join("\\")}`;
 };
+
+/**
+ * Text Win32 would open as a path: a drive or UNC form, or a plain relative name.
+ * A URL with an explicit scheme is not one, so its trailing dot stays meaningful.
+ */
+const isWin32PathText = (path: string): boolean =>
+  // An explicit scheme names a URL. Text starting `//` is either a
+  // scheme-relative URL or a forward-slash UNC path, and the bytes carry nothing
+  // that separates them, so its name is left as written rather than trimmed.
+  !/^(?:[a-z][a-z0-9+.-]*:)?\/\//iu.test(path);
 
 /** A drive or UNC path. Filenames, relative paths, and `%VAR%` forms name no fixed location. */
 const isFullPath = (path: string): boolean =>
@@ -344,13 +377,13 @@ type TargetPathUncertainty = {
 const isAscii = (text: string): boolean =>
   [...text].every((char) => char <= "\u007f");
 
-const recorded = (path: string, ansi: boolean) => {
+const recorded = (path: string, ansi: boolean, win32Names: boolean = true) => {
   const nonAscii = !isAscii(path);
   return {
     path,
     ansi: ansi && nonAscii,
     unicode: !ansi && nonAscii,
-    extension: extensionOf(path, ansi),
+    extension: extensionOf(path, ansi, win32Names),
   };
 };
 
@@ -420,8 +453,14 @@ const linkInfoTargets = (
       : recorded(suffixText, info.common_path_suffix_unicode === null);
   // Each part keeps its own encoding, so an ASCII ANSI part never hides a
   // comparable Unicode part.
+  // The extension belongs to the joined target, not to the suffix: pefile-style
+  // trimming depends on the whole path, and `\\?\C:\Tools` + `app.exe.` must keep its
+  // trailing period because a device path skips the trim. A part whose encoding cannot be
+  // compared leaves the extension unknown rather than taking the suffix's.
   const withSuffix = (base: ReturnType<typeof recorded>): RecordedPath => {
     if (suffix === null) return base;
+    // The parts cannot be joined into one comparable string, but the extension still comes
+    // from the final segment, which is the suffix's own name.
     if (base.ansi || suffix.ansi)
       return {
         path: null,
@@ -429,11 +468,12 @@ const linkInfoTargets = (
         unicode: base.unicode || suffix.unicode,
         extension: suffix.extension,
       };
+    const joined = `${base.path.replace(/\\$/u, "")}\\${suffix.path.replace(/^\\/u, "")}`;
     return {
-      path: `${base.path.replace(/\\$/u, "")}\\${suffix.path.replace(/^\\/u, "")}`,
+      path: joined,
       ansi: base.ansi || suffix.ansi,
       unicode: base.unicode || suffix.unicode,
-      extension: suffix.extension,
+      extension: extensionOf(joined, base.ansi || suffix.ansi, true),
     };
   };
   const values: RecordedPath[] = [];
@@ -469,8 +509,16 @@ const targetPaths = (
       ? []
       : linkInfoTargets(report.link_info, uncertainty);
   const relative = report.string_data.relative_path;
+  // RelativePath holds whatever producer wrote it, including a URL, so Win32 name
+  // trimming applies only when the text is a Win32 path.
   if (relative !== null)
-    values.push(recorded(relative.value, relative.encoding === "ansi"));
+    values.push(
+      recorded(
+        relative.value,
+        relative.encoding === "ansi",
+        isWin32PathText(relative.value),
+      ),
+    );
   if (report.id_list !== null) {
     const lastFile = [...report.id_list.items]
       .reverse()
