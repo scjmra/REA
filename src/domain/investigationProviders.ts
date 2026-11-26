@@ -252,3 +252,10 @@ export const BINARY_HARDENING_PROVIDER = Object.freeze({
   name: "REA binary hardening parser",
   version: "1",
 } as const);
+
+/** Provider identity for portable firmware CPU, endianness, and load-base candidate inspection. */
+export const FIRMWARE_ARCHITECTURE_CANDIDATES_PROVIDER = Object.freeze({
+  id: "rea-firmware-architecture-candidates",
+  name: "REA firmware architecture candidate scanner",
+  version: "1",
+} as const);

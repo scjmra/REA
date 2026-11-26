@@ -851,7 +851,13 @@ ComLoader rejects records `loader: "BinaryLoader"`, `load_address: "1000:0100"`
 (linear `0x10100`), and `loader_fallback.reason`. Segment context is imposed for
 analysis. PSP contents, stack, and device state remain unmodeled. See [DOS guide](https://github.com/morluto/rea/blob/main/docs/providers/ghidra-dos.md).
 
-Use `inspect_byte_entropy` to triage high- and low-entropy ranges before extraction.
+Use `inspect_byte_entropy` to triage high- and low-entropy ranges before extraction,
+and `inspect_firmware_architecture_candidates` (`rea inspect-firmware-architecture-candidates PATH`)
+when a firmware blob's CPU family, endianness, or Cortex-M `base_address` is
+unknown: it checks CRC-verified uImage headers, embedded ELF `e_machine`
+consensus (`mixed` without a strict majority), 128-byte aligned M-profile vector
+tables, and aligned prologue/return opcode margins without opening a session.
+See [firmware CPU candidates](https://github.com/morluto/rea/blob/main/docs/guides/firmware/firmware-architecture-candidates.md).
 
 For other headerless images (embedded firmware without ELF/Mach-O/PE/MZ
 headers), open with `format: "raw-binary"`, `architecture` (`x86`, `x86_64`,

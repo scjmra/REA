@@ -21,6 +21,7 @@ import type { PeUnwindRangesService } from "../application/binaryDiagnostics/PeU
 import type { PeResourcesService } from "../application/binaryDiagnostics/PeResourcesService.js";
 import type { RecordedCrashService } from "../application/binaryDiagnostics/RecordedCrashService.js";
 import type { WindowsShortcutService } from "../application/binaryDiagnostics/WindowsShortcutService.js";
+import type { FirmwareArchitectureCandidatesService } from "../application/binaryDiagnostics/FirmwareArchitectureCandidatesService.js";
 import type { BeamService } from "../application/erlang/BeamService.js";
 import type { EvmInterfaceService } from "../application/evm/EvmInterfaceService.js";
 import type { GoBinaryService } from "../application/go/GoBinaryService.js";
@@ -158,6 +159,12 @@ export const OFFLINE_INSPECTION_TOOL_BINDINGS = {
       run: (input, options) => service.inspect(input, options),
     },
   })) satisfies Bind<WindowsShortcutService>,
+  firmwareArchitectureCandidates: ((service) => ({
+    inspect_firmware_architecture_candidates: {
+      admission: "sdk",
+      run: (input, options) => service.inspect(input, options),
+    },
+  })) satisfies Bind<FirmwareArchitectureCandidatesService>,
   recordedCrash: ((service) => ({
     inspect_recorded_crash: {
       admission: "application",
