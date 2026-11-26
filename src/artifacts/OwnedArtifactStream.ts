@@ -74,9 +74,11 @@ export const ownArtifactStream = (
     signal,
     cancellationFailure,
     label,
+    decode,
   }: {
     readonly scope: ArtifactResourceScope;
     readonly streams?: Set<Readable>;
+    readonly decode?: Transform;
     readonly signal: AbortSignal | undefined;
     readonly cancellationFailure: (reason: unknown) => Error;
     readonly label: string;
@@ -84,8 +86,29 @@ export const ownArtifactStream = (
 ): void => {
   output.on("error", () => undefined);
   streams?.add(output);
+  if (decode !== undefined) {
+    decode.on("error", () => undefined);
+    streams?.add(decode);
+  }
   let producerComplete = false;
+  let sourceRetired = false;
+  const cancelRetiredSourceDecode = (): boolean => {
+    // Once the source retires its abort listener is gone, while a decoder
+    // paused by a slow consumer can still hold undelivered output. It has
+    // not ended, so the output's final validation has not started.
+    if (
+      decode === undefined ||
+      !sourceRetired ||
+      signal?.aborted !== true ||
+      decode.destroyed ||
+      decode.readableEnded
+    )
+      return false;
+    decode.destroy(cancellationFailure(signal.reason));
+    return true;
+  };
   const onAbort = (): void => {
+    if (cancelRetiredSourceDecode()) return;
     // Active I/O and validation own failure precedence; cancellation also
     // retires buffered output after production completes.
     if (!producerComplete || output.destroyed) return;
@@ -94,10 +117,16 @@ export const ownArtifactStream = (
   const retired = new Promise<void>((resolve) => {
     output.once("close", () => {
       streams?.delete(output);
+      if (decode !== undefined) streams?.delete(decode);
       signal?.removeEventListener("abort", onAbort);
       resolve();
     });
   });
+  if (decode !== undefined)
+    source.once("close", () => {
+      sourceRetired = true;
+      cancelRetiredSourceDecode();
+    });
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();
   output.once("finish", () => {
@@ -110,11 +139,13 @@ export const ownArtifactStream = (
     .run(async () => {
       await Promise.all([
         new Promise<void>((resolve) => {
-          pipeline(source, output, () => {
+          const onPipeline = (): void => {
             producerComplete = true;
             if (signal?.aborted) onAbort();
             resolve();
-          });
+          };
+          if (decode === undefined) pipeline(source, output, onPipeline);
+          else pipeline(source, decode, output, onPipeline);
         }),
         retired,
       ]);
