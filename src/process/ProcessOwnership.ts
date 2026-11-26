@@ -1378,7 +1378,9 @@ const cleanupValidationFailure = (
         ),
       ]
         .sort((left, right) => left - right)
-        .join(", ")}`,
+        .join(
+          ", ",
+        )}; cleanup stays fail-closed (if the target is a Chromium-family browser on Linux, it may have overwritten /proc/<pid>/environ including REA_PROCESS_RUN_ID after launch, in which case token proof is unavailable without CDP Browser.close)`,
       failures,
       ...unverifiedEntry,
     };

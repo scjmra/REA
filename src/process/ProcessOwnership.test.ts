@@ -449,8 +449,8 @@ describe("withheld process evidence during cleanup", () => {
       ]);
       if (result.cleaned) throw new Error("expected cleanup failure");
       if (mode === "revalidation")
-        expect(result.reason).toBe(
-          "process ownership token mismatch for PID(s): 100",
+        expect(result.reason).toMatch(
+          /^process ownership token mismatch for PID\(s\): 100; cleanup stays fail-closed \(if the target is a Chromium-family browser on Linux,/,
         );
       else
         expect(result.reason).toBe(
