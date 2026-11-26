@@ -299,6 +299,7 @@ export const ENTRY_FILES = Object.freeze(
         "FirmwareProvider.ts",
         "FirmwareProviderIdentities.ts",
         "devicetree/DevicetreeProvider.ts",
+        "literalPools/FirmwareLiteralPoolsProvider.ts",
       ],
       flutter: ["FlutterBuildProvider.ts", "FlutterProviderIdentity.ts"],
       frida: ["FridaInstrumentationManager.ts", "FridaProviderIdentity.ts"],

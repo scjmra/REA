@@ -224,6 +224,10 @@ import { dartAotSummaryViewResultSchema } from "./summarySchemas/dartAotSummaryS
 import { desktopApplicationSummaryViewResultSchema } from "./summarySchemas/desktopApplicationSummarySchema.js";
 import { devicetreeSummaryViewResultSchema } from "./summarySchemas/devicetreeSummarySchema.js";
 import {
+  firmwareLiteralPoolsPageViewResultSchema,
+  firmwareLiteralPoolsSummaryViewResultSchema,
+} from "./summarySchemas/firmwareLiteralPoolsSummarySchema.js";
+import {
   uefiExtractionPageViewResultSchema,
   uefiExtractionSummaryViewResultSchema,
 } from "./summarySchemas/uefiExtractionSummarySchema.js";
@@ -344,6 +348,8 @@ export {
   dartAotSummaryViewResultSchema,
   desktopApplicationSummaryViewResultSchema,
   devicetreeSummaryViewResultSchema,
+  firmwareLiteralPoolsPageViewResultSchema,
+  firmwareLiteralPoolsSummaryViewResultSchema,
   elfDependenciesSummaryViewResultSchema,
   endpointComparisonPageViewResultSchema,
   endpointComparisonSummaryViewResultSchema,
@@ -417,6 +423,7 @@ const viewResultBase = {
     "inspect_oci_image_layout",
     "inspect_erlang_beam",
     "inspect_devicetree",
+    "inspect_firmware_literal_pools",
     "inspect_byte_entropy",
     "inspect_native_exports",
     "inspect_elf_dependencies",
@@ -777,6 +784,7 @@ export const analysisViewResultSchema = z.discriminatedUnion("kind", [
     nativeValueTraceSummaryViewResultSchema,
     erlangBeamSummaryViewResultSchema,
     devicetreeSummaryViewResultSchema,
+    firmwareLiteralPoolsSummaryViewResultSchema,
     uefiFirmwareSummaryViewResultSchema,
     uefiExtractionSummaryViewResultSchema,
     pythonPycSummaryViewResultSchema,
@@ -840,6 +848,7 @@ export const analysisViewResultSchema = z.discriminatedUnion("kind", [
   }),
   uefiFirmwarePageViewResultSchema,
   uefiExtractionPageViewResultSchema,
+  firmwareLiteralPoolsPageViewResultSchema,
   byteEntropyPageViewResultSchema,
   webSourceLocationMatchesViewResultSchema,
   webSourceLocationTextViewResultSchema,
