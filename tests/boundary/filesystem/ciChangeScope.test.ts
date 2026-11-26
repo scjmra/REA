@@ -2125,6 +2125,7 @@ it.each([
 it.each([
   "scripts/lib/cli-compiled-runtime.mjs",
   "scripts/lib/cli-process-environment.mjs",
+  "scripts/lib/cli-runtime-files.mjs",
   "scripts/lib/runtime-admission.mjs",
   "scripts/lib/runtime-admission.d.mts",
 ])("selects packaged CLI runtime checks for %s", async (path) => {

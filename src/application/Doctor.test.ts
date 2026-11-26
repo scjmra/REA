@@ -376,6 +376,20 @@ describe("doctor MCP startup readiness", () => {
       required: ["hopper-startup-timeout"],
       advisory: [],
     },
+    {
+      kind: "plugin client with invalid native settings",
+      scope: { pluginClients: ["codex"] },
+      environment: malformedGhidra,
+      required: [ghidra],
+      advisory: [],
+    },
+    {
+      kind: "plugin client with invalid Hopper timeout",
+      scope: { pluginClients: ["codex"] },
+      environment: { REA_HOPPER_STARTUP_TIMEOUT_MS: "abc" },
+      required: ["hopper-startup-timeout"],
+      advisory: [],
+    },
   ])(
     "reports startup admission for $kind",
     async ({ scope, environment, required, advisory }) => {
@@ -401,6 +415,14 @@ describe("doctor MCP startup readiness", () => {
         expect(scopeChecksOf(result)).toContainEqual(
           expect.objectContaining({ name: "registration:codex", ok: true }),
         );
+      if (scope.pluginClients !== undefined) {
+        expect(result.scope.plugin_clients).toEqual(["codex"]);
+        expect(
+          scopeChecksOf(result).some(
+            ({ name }) => name === "registration:codex",
+          ),
+        ).toBe(false);
+      }
     },
   );
 });
