@@ -34,6 +34,7 @@ import type { PythonPycService } from "../application/python/PythonPycService.js
 import type { ReleaseExposureService } from "../application/releaseExposure/ReleaseExposureService.js";
 import type { RustBinaryService } from "../application/rust/RustBinaryService.js";
 import type { SqliteDatabaseService } from "../application/sqlite/SqliteDatabaseService.js";
+import type { UnityAddressablesService } from "../application/unity/UnityAddressablesService.js";
 import type { V8CodeCacheService } from "../application/v8CodeCache/V8CodeCacheService.js";
 import type { WasmArtifactService } from "../application/wasm/WasmArtifactService.js";
 import { compareWasmInterfaces } from "../application/wasm/WasmInterfaceComparisonService.js";
@@ -200,6 +201,12 @@ export const OFFLINE_INSPECTION_TOOL_BINDINGS = {
       run: (input, options) => service.inspect(input, options, retention),
     },
   })) satisfies Bind<Il2cppMetadataService>,
+  unityAddressables: ((service, retention) => ({
+    inspect_unity_addressables: {
+      admission: "application",
+      run: (input, options) => service.inspect(input, options, retention),
+    },
+  })) satisfies Bind<UnityAddressablesService>,
   rustBinary: ((service, retention) => ({
     inspect_rust_binary: {
       admission: "application",

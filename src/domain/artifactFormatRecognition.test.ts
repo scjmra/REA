@@ -18,6 +18,10 @@ import { devicetreeFixture } from "./firmware/devicetree.fixture.js";
 import { dfuseFile } from "./firmware/dfuse.fixture.js";
 import { DFUSE_SUFFIX_BYTES } from "./firmware/dfuse.js";
 import { ESP8266_REFUSAL } from "./firmware/espImage.js";
+import {
+  binaryCatalog,
+  sampleCatalog,
+} from "../../tests/fixtures/unity/addressables.js";
 import { buildIso9660Image } from "./iso9660/iso9660.fixture.js";
 import { ISO9660_DESCRIPTOR_OFFSET } from "./iso9660/iso9660Structures.js";
 
@@ -185,6 +189,31 @@ it.each([8, 12, 19])(
     });
   },
 );
+
+it.each([2, 3])(
+  "recognizes a binary Addressables catalog with header version %s",
+  (version) => {
+    expect(
+      recognize(binaryCatalog(sampleCatalog(), { version })),
+    ).toMatchObject({
+      state: "recognized",
+      format: "unity-addressables-catalog",
+    });
+  },
+);
+
+it.each([
+  [
+    "an undecoded header version",
+    binaryCatalog(sampleCatalog(), { version: 1 }),
+  ],
+  [
+    "the magic without a complete header",
+    binaryCatalog(sampleCatalog(), { version: 3 }).subarray(0, 31),
+  ],
+])("does not claim %s as an Addressables catalog", (_label, bytes) => {
+  expect(recognize(bytes)?.format).not.toBe("unity-addressables-catalog");
+});
 
 it("recognizes the descriptor signature at sector 16 or asks for it", () => {
   const { bytes } = buildIso9660Image();

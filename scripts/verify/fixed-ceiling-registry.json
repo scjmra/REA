@@ -368,5 +368,11 @@
       "class": "format",
       "reason": "SQLite's own result-column limit (SQLITE_LIMIT_COLUMN) for the private connection, reported by the engine with the reply; REA does not set it."
     }
+  },
+  "src/unity/UnityAddressablesProvider.ts": {
+    "\"The Unity Addressables catalog.hash allowance\"": {
+      "class": "format",
+      "reason": "catalog.hash holds one Hash128 string of 32 hexadecimal digits; 4096 bytes bounds that format fact, and the catalog and report budgets are per-call parameters."
+    }
   }
 }
