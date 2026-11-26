@@ -21,6 +21,7 @@ import type { PeUnwindRangesService } from "../application/binaryDiagnostics/PeU
 import type { PeResourcesService } from "../application/binaryDiagnostics/PeResourcesService.js";
 import type { RecordedCrashService } from "../application/binaryDiagnostics/RecordedCrashService.js";
 import type { WindowsShortcutService } from "../application/binaryDiagnostics/WindowsShortcutService.js";
+import type { CanonicalizeService } from "../application/canonicalize/CanonicalizeService.js";
 import type { BeamService } from "../application/erlang/BeamService.js";
 import type { EvmInterfaceService } from "../application/evm/EvmInterfaceService.js";
 import type { GoBinaryService } from "../application/go/GoBinaryService.js";
@@ -80,6 +81,12 @@ export const OFFLINE_INSPECTION_TOOL_BINDINGS = {
       run: (input, options) => service.inspect(input, options),
     },
   })) satisfies Bind<ElfNotesService>,
+  canonicalizeArtifact: ((service) => ({
+    canonicalize_artifact: {
+      admission: "sdk",
+      run: (input, options) => service.canonicalize(input, options),
+    },
+  })) satisfies Bind<CanonicalizeService>,
   elfDebugLink: ((service) => ({
     inspect_elf_debug_link: {
       admission: "application",
