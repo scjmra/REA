@@ -81,6 +81,10 @@ import {
   inspectGhidraPspExtension,
   type GhidraPspExtension,
 } from "./GhidraPspExtension.js";
+import {
+  inspectGhidraEeExtension,
+  type GhidraEeExtension,
+} from "./GhidraEeExtension.js";
 import { errorMessage } from "../kernel/errorMessage.js";
 
 export interface GhidraLaunchSession {
@@ -279,6 +283,7 @@ export interface GhidraHeadlessLauncherOptions {
   readonly analysisSeeds?: GhidraSeedCommitment;
   readonly analysisExtensions?: readonly GhidraExtension[];
   readonly pspExtension?: GhidraPspExtension;
+  readonly eeExtension?: GhidraEeExtension;
   /** Remap typed float storage for the soft-float o32 ABI after analysis. */
   readonly mipsSoftFloat?: true;
   /** ELF image base (bare hex) committed by the analysis profile. */
@@ -355,6 +360,32 @@ export class GhidraHeadlessLauncher implements GhidraLauncher {
         if (inspected.sha256 !== psp.sha256)
           throw new GhidraLaunchError(
             "Installed Allegrex content changed since profile resolution; reopen the target to resolve a fresh profile.",
+          );
+      }
+      const ee = this.options.eeExtension;
+      if (ee !== undefined) {
+        const installedRoot = await realpath(
+          join(
+            dirname(this.options.analyzeHeadlessPath),
+            "..",
+            "Ghidra",
+            "Extensions",
+            "ghidra-emotionengine-reloaded",
+          ),
+        );
+        if (installedRoot !== ee.root)
+          throw new GhidraLaunchError(
+            "PlayStation 2 EE profile does not belong to the selected Ghidra installation.",
+          );
+        const inspected = await inspectGhidraEeExtension(
+          ee.root,
+          ee.ghidra_version,
+          options.resourceScope,
+          options.signal,
+        );
+        if (inspected.sha256 !== ee.sha256)
+          throw new GhidraLaunchError(
+            "Installed EE extension content changed since profile resolution; reopen the target to resolve a fresh profile.",
           );
       }
       await createGhidraRuntimeDirectories(
