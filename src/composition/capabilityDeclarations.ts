@@ -53,6 +53,7 @@ import {
   PE_UNWIND_RANGES_PROVIDER,
   PE_RESOURCES_PROVIDER,
   RELEASE_EXPOSURE_PROVIDER,
+  ESP_NVS_PROVIDER,
   WEB_SCRIPT_EXPORT_PROVIDER,
   WINDOWS_SHORTCUT_PROVIDER,
 } from "../domain/investigationProviders.js";
@@ -318,6 +319,9 @@ export const CAPABILITY_DECLARATIONS = {
       providerBinding(BINWALK_PROVIDER_IDENTITY, ["inspect_firmware_regions"]),
       providerBinding(UNBLOB_PROVIDER_IDENTITY, ["extract_firmware"]),
     ],
+  },
+  espNvs: {
+    providers: [providerBinding(ESP_NVS_PROVIDER, ["inspect_esp_nvs"])],
   },
   uefiAnalysis: {
     providers: [

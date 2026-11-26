@@ -108,6 +108,7 @@ The [REA website](https://rea.tools/) has worked examples and product pages.
 - [Android sparse images](guides/firmware/android-sparse-image.md)
 - [Flattened devicetree inspection](devicetree.md)
 - [ESP flash images](esp-flash-image.md)
+- [ESP-IDF NVS partitions](guides/firmware/esp-nvs.md)
 - [ESP images](esp-image.md)
 - [U-Boot FIT images](fit-images.md)
 - [Intel HEX and S-record images](hex-records.md)
