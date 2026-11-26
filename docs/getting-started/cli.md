@@ -475,6 +475,16 @@ rea extract-artifact ./busybox.bflt --json
 See [uClinux bFLT flat executables](../bflt-executables.md) for header facts,
 segments, gzip and gzdata bodies, and the limitations kept beside the facts.
 
+Inventory and extract a Qualcomm MBN boot image or an ELF image with a hash segment:
+
+```sh
+rea inspect-artifact ./sbl1.mbn --json
+rea extract-artifact ./sbl1.mbn --json
+```
+
+See [Qualcomm MBN images](../guides/firmware/qualcomm-mbn-images.md) for header
+recognition, regions, hash segments and what is not verified.
+
 Inspect local model declarations without loading weights:
 
 ```bash
