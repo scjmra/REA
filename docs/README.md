@@ -107,6 +107,7 @@ The [REA website](https://rea.tools/) has worked examples and product pages.
 - [Android Verified Boot vbmeta images](guides/firmware/android-vbmeta.md)
 - [Android sparse images](guides/firmware/android-sparse-image.md)
 - [Flattened devicetree inspection](devicetree.md)
+- [Firmware literal-pool MMIO disassembly](guides/firmware/firmware-literal-pools.md)
 - [ESP flash images](esp-flash-image.md)
 - [ESP images](esp-image.md)
 - [U-Boot FIT images](fit-images.md)

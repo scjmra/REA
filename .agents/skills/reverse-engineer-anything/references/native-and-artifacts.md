@@ -867,6 +867,15 @@ ComLoader rejects records `loader: "BinaryLoader"`, `load_address: "1000:0100"`
 analysis. PSP contents, stack, and device state remain unmodeled. See [DOS guide](https://github.com/morluto/rea/blob/main/docs/providers/ghidra-dos.md).
 
 Use `inspect_byte_entropy` to triage high- and low-entropy ranges before extraction.
+For stripped or headerless ARM Cortex-M/A32 (`arm-thumb`, `arm-a32`) and
+Espressif Xtensa (`xtensa`) firmware slices at a known `base_address`, use
+`inspect_firmware_literal_pools` (`rea inspect-firmware-literal-pools PATH --isa <arm-thumb|arm-a32|xtensa> --base-address <hex> [--svd-xml <xml>] [--detail summary]`)
+to disassemble PC-relative literal-pool loads (`LDR Rt,[PC,#imm]` / `LDR.W` / `L32R`),
+resolve 32-bit loaded constants, and attribute CMSIS-SVD `<peripheral>` blocks,
+Cortex-M PPB/SCS (`SCB`, `NVIC`, `SysTick`, `MPU`, `SAU`, `FPU` for `arm-thumb`),
+and peripheral MMIO targets before or without opening an external deep
+disassembler; page retained `mmio_summary` and `references` with
+`inspect_analysis_view` kind `firmware-literal-pools`. See [Firmware literal-pool MMIO disassembly](https://github.com/morluto/rea/blob/main/docs/guides/firmware/firmware-literal-pools.md).
 
 For other headerless images (embedded firmware without ELF/Mach-O/PE/MZ
 headers), open with `format: "raw-binary"`, `architecture` (`x86`, `x86_64`,
