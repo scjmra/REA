@@ -12,6 +12,7 @@ import { withEvidenceSubjectDeclaration } from "./evidenceSubject.js";
 import { digestCanonicalValue } from "./canonicalDigest.js";
 import { canonicalJsonDigestSteps } from "./canonicalJsonDigestSteps.js";
 import { nulFreeStringSchema } from "./localPath.js";
+import { jsonRecordSchema } from "./jsonRecord.js";
 import {
   binaryTargetIdentity,
   directoryTargetIdentitySchema,
@@ -160,9 +161,9 @@ const executionEnvironmentSchema = z.strictObject({
   architecture: z.string().min(1),
   isolation: z.enum(["none", "process", "container", "virtual-machine"]),
 });
-const callerInputPathsSchema = z.record(
-  nulFreeStringSchema,
+const callerInputPathsSchema = jsonRecordSchema(
   z.union([nulFreeStringSchema, z.array(nulFreeStringSchema)]),
+  nulFreeStringSchema,
 );
 /** Caller-selected auxiliary paths, retaining ordered repeated options. */
 export type CallerInputPaths = Readonly<
