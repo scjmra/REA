@@ -46,6 +46,7 @@ export const BINARY_TARGET_FORMAT_KINDS = {
   bflt: "archive",
   "esp-flash-image": "archive",
   fit: "archive",
+  "compound-file": "archive",
   "ntfs-mft": "archive",
   plist: "artifact",
   javascript: "artifact",

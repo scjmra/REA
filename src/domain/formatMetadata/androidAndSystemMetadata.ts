@@ -508,6 +508,33 @@ export type AndroidVbmetaDescriptorEntryMetadata = z.infer<
 >;
 
 /**
+ * Compound file container facts: the header, the allocation tables it declares
+ * and the directory entries their chains reach. Stream contents are not
+ * interpreted in this step.
+ */
+export const compoundFileMetadataSchema = z.strictObject({
+  kind: z.literal("compound-file"),
+  major_version: uint32,
+  sector_bytes: offset,
+  // Null when the header's mini sector shift names a size past the
+  // representable offset bound; zero would fabricate a size the file does not
+  // declare.
+  mini_sector_bytes: offset.nullable(),
+  fat_sector_count: offset,
+  difat_sector_count: offset,
+  directory_entry_count: offset,
+  stream_count: offset,
+  storage_count: offset,
+  root_storage_count: offset,
+  unallocated_entry_count: offset,
+  orphan_entry_count: offset,
+  unreadable_entry_count: offset,
+  broken_chain_count: offset,
+  unlisted_fat_sector_count: offset,
+});
+export type CompoundFileMetadata = z.infer<typeof compoundFileMetadataSchema>;
+
+/**
  * ISO 9660 primary volume descriptor facts, with what the rest of the
  * descriptor set declares. The identifiers, sizes, set and sequence numbers,
  * dates, `root_directory_extent` and `boot_catalog_sector` are observed

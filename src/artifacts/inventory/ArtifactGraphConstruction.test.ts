@@ -648,6 +648,21 @@ it("classifies nested UF2 by block magics and DfuSe by prefix and suffix", () =>
   ).toMatchObject({ format: "file" });
 });
 
+it("classifies a compound file by its signature, under any name", () => {
+  const container = Buffer.alloc(2_048);
+  Buffer.from("d0cf11e0a1b11ae1", "hex").copy(container, 0);
+  for (const path of [
+    "evidence/sample.automaticDestinations-ms",
+    "evidence/custom.customDestinations-ms",
+    "evidence/Thumbs.db",
+    "evidence/blob.bin",
+  ])
+    expect(classifyArtifactBytesAtPath(path, container)).toEqual({
+      kind: "container",
+      format: "compound-file",
+    });
+});
+
 it("classifies an ISO 9660 image by its sector 16 descriptor, under any name", () => {
   const { bytes } = buildIso9660Image({
     files: [{ path: "a.txt", bytes: Buffer.from("a") }],

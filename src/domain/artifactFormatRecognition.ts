@@ -21,6 +21,7 @@ import { hasUImageMagic } from "./uimageFormat.js";
 import { hasBfltMagic } from "./bfltExecutable.js";
 import { hasNroMagic, hasNsoMagic } from "./switchExecutable.js";
 import { hasUnityFsHeader } from "./unityfsFormat.js";
+import { hasCompoundFileSignature } from "./windows/compoundFile.js";
 import { hasMftFileRecordHeader } from "./windows/ntfsMft.js";
 import { hasWindowsShortcutHeader } from "./windows/windowsShortcutHeader.js";
 import { BinaryFormatFailure } from "./binaryContainer.js";
@@ -70,6 +71,7 @@ export type RecognizedArtifactFormat = Extract<
   | "esp-flash-image"
   | "esp-image"
   | "fit"
+  | "compound-file"
   | "ntfs-mft"
   | "plist"
   | StandaloneArtifactFormat
@@ -253,6 +255,7 @@ export const ARTIFACT_FORMAT_RECOGNIZERS: readonly ArtifactFormatRecognizer[] =
         : { state: "refused", format: "esp-image", reason: ESP8266_REFUSAL };
     },
     when("fit", hasFitImagesNode),
+    when("compound-file", hasCompoundFileSignature),
     when("ntfs-mft", hasMftFileRecordHeader),
     when("sqlite", hasSqliteHeader),
     when("windows-shortcut", hasWindowsShortcutHeader),
