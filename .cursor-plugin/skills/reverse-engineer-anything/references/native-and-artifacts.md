@@ -867,6 +867,12 @@ ComLoader rejects records `loader: "BinaryLoader"`, `load_address: "1000:0100"`
 analysis. PSP contents, stack, and device state remain unmodeled. See [DOS guide](https://github.com/morluto/rea/blob/main/docs/providers/ghidra-dos.md).
 
 Use `inspect_byte_entropy` to triage high- and low-entropy ranges before extraction.
+When analyzing disassembled bootloaders, RTOS handlers, kernels, or BIOS/UEFI
+functions in an open target, use `inspect_procedure_hardware_instructions`
+(`rea inspect-procedure-hardware-instructions TARGET PROCEDURE --hardware-architecture ARCH`)
+to extract non-MMIO hardware channels (`MRS`/`MSR`, `CPSID`, `MCR`/`MRC`,
+RISC-V `csrr*`, Xtensa `rsr`/`wsr`, MIPS `mfc0`/`mtc0`, x86 `in`/`out` and
+`rdmsr`/`wrmsr`/`cr*`). See [hardware instruction channels](https://github.com/morluto/rea/blob/main/docs/guides/firmware/hardware-instruction-channels.md).
 
 For other headerless images (embedded firmware without ELF/Mach-O/PE/MZ
 headers), open with `format: "raw-binary"`, `architecture` (`x86`, `x86_64`,
