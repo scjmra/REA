@@ -6,6 +6,7 @@ import type { ElfNotes } from "./native/elfNotes.js";
 import type { ElfUnwindRanges } from "./native/elfUnwindRanges.js";
 import type { PeUnwindRanges } from "./native/peUnwindRanges.js";
 import type { KernelBuildConfig } from "./native/kernelBuildConfig.js";
+import type { FirmwareArchitectureCandidates } from "./firmware/firmwareArchitectureCandidates.js";
 import type { KernelModule } from "./native/kernelModule.js";
 import type { V8CodeCache } from "./v8/v8CodeCache.js";
 import type { InterfaceBuilderAnalysis } from "./apple/interfaceBuilderGraph.js";
@@ -792,4 +793,5 @@ export type AnalysisPartialObservation =
   | AdbActivityStartPartialObservation
   | AdbAcquiredFilePartialObservation
   | AdbPackagePullPartialObservation
-  | AdbDisplayPartialObservation;
+  | AdbDisplayPartialObservation
+  | FirmwareArchitectureCandidates;
