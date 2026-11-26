@@ -42,6 +42,9 @@ import {
   openCodeUserOverridePaths,
   openCodeConfigurationPaths,
   existingOpenCodeConfigPath,
+  mimoCodeLocation,
+  mimoCodeConfigPaths,
+  mimoCodeClaudeCodeImportPath,
   geminiSettings,
   devinDirectory,
   clineSettingsDirectory,
@@ -93,6 +96,12 @@ export interface SetupClient {
   readonly configPathFailure?: ConfigurationError;
   /** Same-scope fallback ZCode stops loading after its first native server. */
   readonly zcodeFallbackPath?: string;
+  /**
+   * Claude Code's user `.claude.json`, whose `rea` entry MiMo Code imports
+   * when none of its own layers declares one. Read-only; absent when MiMo
+   * Code's environment disables the import.
+   */
+  readonly claudeCodeImportPath?: string;
   readonly markerPath?: string;
   /**
    * Registration storage shared with other products. Its presence never proves
@@ -143,6 +152,7 @@ export interface SetupClient {
     | "fx"
     | "goose"
     | "kilo"
+    | "mimo_code"
     | "unsupported";
 }
 
@@ -250,6 +260,9 @@ export interface ClientDefinitionBase {
   readonly format: NonNullable<SetupClient["format"]>;
   readonly quitBeforeSetup?: boolean;
   readonly zcodeFallbackPath?: (context: ClientPathContext) => string;
+  readonly claudeCodeImportPath?: (
+    context: ClientPathContext,
+  ) => string | undefined;
   readonly skillPath?: ClientPath;
   readonly configPaths?: (context: ClientPathContext) => readonly string[];
   readonly geminiSettings?: (
@@ -1203,6 +1216,19 @@ export const SUPPORTED_CLIENT_DEFINITIONS = [
     format: "kilo",
   }),
   defineClient({
+    name: "mimo_code",
+    registrationConnection: {
+      kind: "flat",
+      fields: ["url"],
+      stdio: [{ kind: "required-enum", field: "type", values: ["local"] }],
+    },
+    displayName: "MiMo Code",
+    location: mimoCodeLocation,
+    configPaths: mimoCodeConfigPaths,
+    claudeCodeImportPath: mimoCodeClaudeCodeImportPath,
+    format: "mimo_code",
+  }),
+  defineClient({
     name: "grok_bot",
     registrationConnection: {
       kind: "unavailable",
@@ -1364,6 +1390,7 @@ export const supportedClients = (
         definition.format === "opencode"
           ? openCodeUserOverridePaths(context)
           : [];
+      const claudeCodeImportPath = definition.claudeCodeImportPath?.(context);
       return {
         name: definition.name,
         registrationProfile: definition.registrationProfile,
@@ -1394,6 +1421,7 @@ export const supportedClients = (
         ...(definition.zcodeFallbackPath === undefined
           ? {}
           : { zcodeFallbackPath: definition.zcodeFallbackPath(context) }),
+        ...(claudeCodeImportPath === undefined ? {} : { claudeCodeImportPath }),
         markerPath,
         ...(msixPackage === undefined ? {} : { msixPackage }),
         ...(definition.quitBeforeSetup === true

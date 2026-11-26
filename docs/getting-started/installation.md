@@ -737,6 +737,7 @@ hosted connector; see [its configuration](client-configuration.md#other-client-s
 | Junie                     | `junie`                 |
 | Goose                     | `goose`                 |
 | Kilo Code                 | `kilo`                  |
+| MiMo Code                 | `mimo_code`             |
 
 Some clients require a minimum release.
 `droid`, `dsh`, `kimi`, `qoder`, `trae`, `workbuddy` and `zcode` require
@@ -748,6 +749,8 @@ requires a release after 6.8.0. `cline_vscode`, `cline_vscode_insiders`,
 6.9.0. Setup never selects
 `mcporter` from detection, because MCPorter already imports the registrations
 setup writes for other clients; select it with `--client mcporter`.
+
+`mimo_code` requires a release after 6.10.1.
 
 See [client configuration and troubleshooting](client-configuration.md) for
 configuration paths, profiles, trust policies, and schema-limit workarounds.
