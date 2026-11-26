@@ -86,6 +86,10 @@ export const CLI_COMMAND_REGISTRATIONS = {
     "registerReleaseExposureCommands",
   ),
   go: cliRegistrar(() => import("./goCommands.js"), "registerGoCommands"),
+  labview: cliRegistrar(
+    () => import("./labviewCommands.js"),
+    "registerLabviewCommands",
+  ),
   il2cpp: cliRegistrar(
     () => import("./il2cppCommands.js"),
     "registerIl2cppCommands",
@@ -300,6 +304,7 @@ const CLI_FAMILY_REGISTRATIONS: {
     "releaseExposure",
     "go",
     "il2cpp",
+    "labview",
     "model",
     "gpu",
     "rust",

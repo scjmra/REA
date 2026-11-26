@@ -71,6 +71,7 @@ export const UNIT_LAYERS = Object.freeze(
       "hopper",
       "ida",
       "il2cpp",
+      "labview",
       "inspector",
       "javascript",
       "java",
@@ -330,6 +331,7 @@ export const ENTRY_FILES = Object.freeze(
         "Il2cppGhidraSeedWriter.ts",
         "Il2cppMetadataProvider.ts",
       ],
+      labview: ["LabviewArtifactProvider.ts", "LabviewProviderIdentity.ts"],
       inspector: ["V8InspectorProvider.ts", "providerIdentity.ts"],
       java: [
         "MavenGradleMetadataProvider.ts",

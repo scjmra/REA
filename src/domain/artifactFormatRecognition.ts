@@ -75,6 +75,7 @@ export const STANDALONE_ARTIFACT_FORMATS = [
   "windows-shortcut",
   "python-pyc",
   "devicetree",
+  "labview-rsrc",
 ] as const;
 
 export type StandaloneArtifactFormat =
@@ -142,6 +143,10 @@ const when =
  * target resolution both walk it, so the same bytes reach the same verdict;
  * each route decides only what a refusal or a missing input means for it.
  */
+/** A LabVIEW RSRC container starts with its own six-byte magic. */
+const hasLabviewRsrcHeader = (prefix: Buffer): boolean =>
+  prefix.length >= 6 && prefix.subarray(0, 6).toString("latin1") === "RSRC\r\n";
+
 export const ARTIFACT_FORMAT_RECOGNIZERS: readonly ArtifactFormatRecognizer[] =
   [
     ({ prefix, fileSize }) => {
@@ -266,6 +271,7 @@ export const ARTIFACT_FORMAT_RECOGNIZERS: readonly ArtifactFormatRecognizer[] =
       return { state: "recognized", format: "devicetree" };
     },
     // Binary plists, including keyed archives, often use other extensions.
+    when("labview-rsrc", hasLabviewRsrcHeader),
     when("plist", hasBinaryPlistSignature),
   ];
 
