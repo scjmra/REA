@@ -106,7 +106,7 @@ it("does not publish UnityFs entries when final source verification fails", asyn
 describe("UnityFS declared container bounds", () => {
   it.each([
     ["encrypted", { flags: 0x1400 | 0xc3 }],
-    ["unsupported compression", { blocksInfoCompression: 1 }],
+    ["unsupported compression", { blocksInfoCompression: 4 }],
     ["unknown layout", { engineVersion: "2021.x.32f1c1", flags: 0x2c3 }],
   ] as const)(
     "rejects an impossible footer extent even with %s",
@@ -135,7 +135,7 @@ describe("UnityFS declared container bounds", () => {
     // A one-byte unsupported block declares more than the 256 MiB work floor.
     // Its bytes need not be decoded to reject the declared virtual extent.
     bytes.writeUInt32BE(256 * 1024 * 1024 + 1, 64 + 20);
-    bytes.writeUInt16BE(1, 64 + 28);
+    bytes.writeUInt16BE(4, 64 + 28);
     const reader = new UnityFsArtifactReader(
       await fixture(Buffer.concat([bytes, Buffer.alloc(1024 * 1024)])),
     );
@@ -453,6 +453,43 @@ describe("UnityFS stream ownership and immutable cache", () => {
     const reader = new UnityFsArtifactReader(path, admitted);
     const controller = new AbortController();
     const reason = new Error("cancel during block decode");
+    const nativeRead = admitted.handle.read.bind(admitted.handle);
+    const [entry] = await collectEntries(reader);
+    const reads = vi.spyOn(admitted.handle, "read").mockImplementation((async (
+      ...args: unknown[]
+    ) => {
+      const result = await Reflect.apply(nativeRead, admitted.handle, args);
+      globalThis.setImmediate(() => {
+        controller.abort(reason);
+      });
+      return result;
+    }) as typeof admitted.handle.read);
+    try {
+      await expect(
+        buffer(await reader.open(entry!, controller.signal)),
+      ).rejects.toMatchObject({ reason: "cancelled", cause: reason });
+    } finally {
+      try {
+        await reader.close();
+      } finally {
+        reads.mockRestore();
+        await admitted.handle.close();
+      }
+    }
+  });
+
+  it("preserves cancellation occurring inside the LZMA decoder", async () => {
+    const data = Buffer.alloc(8 * 1024 * 1024, 0x61);
+    const path = await fixture(
+      buildUnityFs([{ path: "x", data }], {
+        blockSize: data.length,
+        blockCompression: 1,
+      }),
+    );
+    const admitted = await openRegularFile(path, { symlinks: "reject" });
+    const reader = new UnityFsArtifactReader(path, admitted);
+    const controller = new AbortController();
+    const reason = new Error("cancel during lzma block decode");
     const nativeRead = admitted.handle.read.bind(admitted.handle);
     const [entry] = await collectEntries(reader);
     const reads = vi.spyOn(admitted.handle, "read").mockImplementation((async (
