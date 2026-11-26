@@ -92,7 +92,10 @@ import {
   parseGhidraSessionInfo,
   type GhidraSessionInfo,
 } from "./GhidraSessionValues.js";
-import { createGhidraTargetSnapshot } from "./GhidraTargetSnapshot.js";
+import {
+  createGhidraTargetSnapshot,
+  type GhidraTargetSnapshot as GhidraStagedTarget,
+} from "./GhidraTargetSnapshot.js";
 import { attestGhidraDosSnapshot } from "./GhidraDosSnapshot.js";
 import {
   nativeLoadImagePartialObservationSchema,
@@ -141,6 +144,7 @@ import { completeGhidraStartupHandshake } from "./GhidraClientStartup.js";
 import { ghidraSessionRoot } from "./GhidraSessionRoot.js";
 import {
   GhidraCheckpoint,
+  ghidraCheckpointKey,
   type GhidraPackedProgram,
 } from "./GhidraCheckpoint.js";
 import { errorMessage } from "../kernel/errorMessage.js";
@@ -1194,8 +1198,9 @@ export class GhidraClient {
       );
       return this.#startupFailure(failure, deadline);
     }
+    let snapshot: GhidraStagedTarget;
     try {
-      const snapshot = await createGhidraTargetSnapshot(
+      snapshot = await createGhidraTargetSnapshot(
         this.#options.targetPath,
         this.#runtimeRoot.path,
         this.#options.targetSha256,
@@ -1205,8 +1210,6 @@ export class GhidraClient {
           resourceScope: this.#fileResources,
         },
       );
-      this.#snapshotPath = snapshot.path;
-      this.#targetAdmission = snapshot.admission;
     } catch (cause: unknown) {
       const failure =
         cause instanceof ArtifactReaderFailure && cause.reason === "cancelled"
@@ -1223,6 +1226,33 @@ export class GhidraClient {
       // its producer outcome rather than reclassifying from a later deadline.
       return this.#startupFailure(failure);
     }
+    this.#snapshotPath = snapshot.path;
+    this.#targetAdmission = snapshot.admission;
+    if (
+      snapshot.companionDsymSha256 !==
+      (this.#options.companionDsymSha256 ?? null)
+    )
+      return this.#startupFailure(
+        this.#failure(
+          this.#checkpoint === undefined ? "start" : "checkpoint",
+          "The sibling dSYM changed after analysis profile selection; reopen the target to resolve its analysis profile",
+        ),
+        deadline,
+      );
+    if (
+      this.#checkpoint !== undefined &&
+      ghidraCheckpointKey(
+        this.#options.targetSha256,
+        this.#checkpoint.selection.base_profile_digest,
+      ) !== this.#checkpoint.selection.key
+    )
+      return this.#startupFailure(
+        this.#failure(
+          "checkpoint",
+          "The checkpoint selection does not match the committed analysis profile; reopen the target to select its checkpoint",
+        ),
+        deadline,
+      );
     if (deadline.signal.aborted) return this.#startupInterrupted(deadline);
     this.#token = randomBytes(32).toString("hex");
     this.#authenticationTokens.add(this.#token);

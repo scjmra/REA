@@ -1,9 +1,16 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createTestTempDirectory } from "../../../fixtures/temporaryDirectory.js";
 import { createHash } from "node:crypto";
-import { access, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { ArtifactResourceScope } from "../../../../src/resources/ArtifactResourceScope.js";
 import { createAnalysisProfile } from "../../../../src/domain/analysisProfile.js";
 import { GhidraClient } from "../../../../src/ghidra/GhidraClient.js";
@@ -63,9 +70,23 @@ const profile = createAnalysisProfile(
   { id: "ghidra", name: "Ghidra", version: "12.1.4" },
   { checkpoint_test: true },
 );
+const writeCompanionDsym = async (targetPath: string, bytes: string) => {
+  const dwarf = join(
+    `${targetPath}.dSYM`,
+    "Contents",
+    "Resources",
+    "DWARF",
+    basename(targetPath),
+  );
+  await mkdir(dirname(dwarf), { recursive: true });
+  await writeFile(dwarf, bytes);
+};
+
 async function fixture(
   mode: ConstructorParameters<typeof GhidraFixtureLauncher>[0] = "checkpoint",
   bridgeMaxReplyBytes?: BridgeMaxReplyBytes,
+  companionBytes?: string,
+  checkpointing = true,
 ) {
   const root = await createTestTempDirectory("rea-checkpoint-lifecycle-");
   const targetPath = join(root, "target");
@@ -73,10 +94,23 @@ async function fixture(
   const sha256 = createHash("sha256")
     .update("source target bytes")
     .digest("hex");
+  const companionDsymSha256 =
+    companionBytes === undefined
+      ? null
+      : createHash("sha256").update(companionBytes).digest("hex");
+  if (companionBytes !== undefined)
+    await writeCompanionDsym(targetPath, companionBytes);
+  const selectedProfile =
+    companionDsymSha256 === null
+      ? profile
+      : createAnalysisProfile(profile.provider, {
+          ...profile.parameters,
+          companion_dsym_sha256: companionDsymSha256,
+        });
   const selection = await resolveGhidraCheckpoint(
     root,
     sha256,
-    profile,
+    selectedProfile,
     new ArtifactResourceScope(),
   );
   const launcher = new GhidraFixtureLauncher(mode);
@@ -85,15 +119,55 @@ async function fixture(
     launcher,
     targetPath,
     targetSha256: sha256,
+    companionDsymSha256,
     providerVersion: "12.1.4",
-    profileDigest: profile.digest,
-    checkpoint: selection,
+    profileDigest: selectedProfile.digest,
+    ...(checkpointing ? { checkpoint: selection } : {}),
     startupTimeoutMs: 10_000,
     ...(bridgeMaxReplyBytes === undefined ? {} : { bridgeMaxReplyBytes }),
   });
   clients.push(client);
   return { root, selection, launcher, client, targetPath, sha256 };
 }
+
+it.skipIf(process.platform === "win32")(
+  "starts with the companion dSYM committed by checkpoint selection",
+  async () => {
+    const f = await fixture("checkpoint", undefined, "committed companion");
+    expect((await f.client.start()).ok).toBe(true);
+    expect(f.client.checkpointRestore()).toBeNull();
+  },
+);
+
+it.skipIf(process.platform === "win32")(
+  "refuses a companion dSYM added after checkpoint selection",
+  async () => {
+    const f = await fixture();
+    await writeCompanionDsym(f.targetPath, "companion added after selection");
+    const started = await f.client.start();
+    if (started.ok) throw new Error("Expected the changed companion to refuse");
+    expect(started.error.kind).toBe("checkpoint");
+    expect(started.error.message).toMatch(
+      /sibling dSYM changed after analysis profile selection/,
+    );
+    expect(f.launcher.processes).toHaveLength(0);
+  },
+);
+
+it.skipIf(process.platform === "win32")(
+  "refuses a companion dSYM added after the default analysis profile selection",
+  async () => {
+    const f = await fixture("checkpoint", undefined, undefined, false);
+    await writeCompanionDsym(f.targetPath, "companion added after selection");
+    const started = await f.client.start();
+    if (started.ok) throw new Error("Expected the changed companion to refuse");
+    expect(started.error.kind).toBe("start");
+    expect(started.error.message).toMatch(
+      /sibling dSYM changed after analysis profile selection/,
+    );
+    expect(f.launcher.processes).toHaveLength(0);
+  },
+);
 
 it.skipIf(process.platform === "win32")(
   "saves completed initial analysis, leaves an unchanged checkpoint alone, and releases its lease",

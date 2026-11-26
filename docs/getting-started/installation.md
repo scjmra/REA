@@ -1667,8 +1667,12 @@ No separate save/restore tool or runtime analysis-setting update is required;
 enabling checkpoint mode requires the startup environment and an MCP restart.
 
 Storage is separated by target SHA-256 and analysis-profile identity, including
-the supported Ghidra version. Identical executable bytes at another path can
-reuse the Program. One live REA session holds the checkpoint's socket lease;
+the supported Ghidra version and the content digest of a staged sibling dSYM
+when present. That companion digest also binds saved analysis snapshots, so
+adding or changing a dSYM starts a separate analysis and checkpoint instead of
+replaying results produced without its symbols. Identical executable bytes at
+another path can reuse the Program. One live REA session
+holds the checkpoint's socket lease;
 a competing session reports that owner and must wait until it closes. Only
 REA-owned Programs are checkpointed. Caller-selected existing projects retain
 their separate read-only workflow below.

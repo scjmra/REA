@@ -58,6 +58,8 @@ export interface GhidraClientOptions {
   readonly runId?: string;
   readonly targetPath: string;
   readonly targetSha256: string;
+  /** Companion digest committed by the analysis profile; null when absent. */
+  readonly companionDsymSha256?: string | null;
   readonly existingProject?: boolean;
   readonly checkpoint?: GhidraCheckpointSelection;
   /** Installation host shared by runtime allocation and snapshot admission. */

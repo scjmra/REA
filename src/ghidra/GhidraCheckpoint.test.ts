@@ -464,3 +464,76 @@ it.skipIf(process.platform === "win32")(
     );
   },
 );
+
+const profileWithCompanion = (digest: string) =>
+  createAnalysisProfile(profile.provider, {
+    ...profile.parameters,
+    companion_dsym_sha256: digest,
+  });
+
+it.skipIf(process.platform === "win32")(
+  "keeps the established checkpoint identity when the profile commits no companion dSYM",
+  async () => {
+    const f = await fixture();
+    expect(
+      await resolveGhidraCheckpoint(f.root, target, profile, f.resources),
+    ).toEqual(f.selection);
+  },
+);
+
+it.skipIf(process.platform === "win32")(
+  "selects a fresh checkpoint when the profile commits a companion dSYM without replacing the saved Program",
+  async () => {
+    const f = await fixture();
+    await f.owner.acquire("first");
+    await f.owner.publish(f.packed);
+    await f.owner.close();
+    const manifestPath = join(f.selection.directory, "current.json");
+    const before = await readFile(manifestPath, "utf8");
+
+    const withCompanion = await resolveGhidraCheckpoint(
+      f.root,
+      target,
+      profileWithCompanion("a".repeat(64)),
+      f.resources,
+    );
+    expect(withCompanion.key).not.toBe(f.selection.key);
+    expect(withCompanion.directory).not.toBe(f.selection.directory);
+
+    const fresh = new GhidraCheckpoint(withCompanion, f.resources);
+    owners.push(fresh);
+    expect(await fresh.acquire("second")).toBeUndefined();
+    expect(await readFile(manifestPath, "utf8")).toBe(before);
+  },
+);
+
+it.skipIf(process.platform === "win32")(
+  "binds the checkpoint identity to the committed companion dSYM digest",
+  async () => {
+    const f = await fixture();
+    const initial = await resolveGhidraCheckpoint(
+      f.root,
+      target,
+      profileWithCompanion("a".repeat(64)),
+      f.resources,
+    );
+    expect(initial.key).not.toBe(f.selection.key);
+    expect(
+      await resolveGhidraCheckpoint(
+        f.root,
+        target,
+        profileWithCompanion("a".repeat(64)),
+        f.resources,
+      ),
+    ).toEqual(initial);
+
+    const changed = await resolveGhidraCheckpoint(
+      f.root,
+      target,
+      profileWithCompanion("b".repeat(64)),
+      f.resources,
+    );
+    expect(changed.key).not.toBe(initial.key);
+    expect(changed.directory).not.toBe(initial.directory);
+  },
+);
