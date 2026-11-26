@@ -15,6 +15,7 @@ import {
 } from "./iso9660/iso9660Structures.js";
 import { recognizeAndroidOtaPayload } from "./firmware/androidOtaPayload.js";
 import { recognizeAndroidSparseImage } from "./firmware/androidSparseImage.js";
+import { recognizeUbiImage } from "./firmware/ubiImage.js";
 import { hasUImageMagic } from "./uimageFormat.js";
 import { hasBfltMagic } from "./bfltExecutable.js";
 import { hasUnityFsHeader } from "./unityfsFormat.js";
@@ -54,6 +55,7 @@ export type RecognizedArtifactFormat = Extract<
   | "android-boot-image"
   | "android-ota-payload"
   | "android-sparse-image"
+  | "ubi-image"
   | "iso9660"
   | "intel-hex"
   | "srec"
@@ -185,6 +187,13 @@ export const ARTIFACT_FORMAT_RECOGNIZERS: readonly ArtifactFormatRecognizer[] =
             format: "android-ota-payload",
             reason: ota.reason,
           };
+    },
+    ({ prefix, fileSize }) => {
+      const ubi = recognizeUbiImage(prefix, fileSize);
+      if (ubi === undefined) return undefined;
+      return ubi.state === "recognized"
+        ? { state: "recognized", format: "ubi-image" }
+        : { state: "refused", format: "ubi-image", reason: ubi.reason };
     },
     ({ prefix }) => {
       const sparse = recognizeAndroidSparseImage(prefix);
