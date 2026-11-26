@@ -234,7 +234,7 @@ npx rea-agents@latest setup
 
 حدّث أولًا؛ فقد يكون إصدار حديث قد أصلح المشكلة بالفعل.
 
-لواجهة CLI المثبّتة عبر npm:
+لواجهة CLI المثبّتة عبر `npm install --global` / `bun add --global`:
 
 ```bash
 rea update
