@@ -74,9 +74,13 @@ import { createFridaInstrumentationProvider } from "./frida.js";
 import { createCutterBridgeService } from "./cutter.js";
 import {
   createGdbSessionManager,
+  createLldbSessionManager,
   createRizinDebugSessionManager,
 } from "./debuggerSessions.js";
-import { persistentDebuggerHostSupported } from "../process/PersistentDebuggerHost.js";
+import {
+  persistentDebuggerHostSupported,
+  lldbDebuggerHostSupported,
+} from "../process/PersistentDebuggerHost.js";
 import { pcapCaptureHostSupported } from "../domain/pcap/pcapAnalysis.js";
 import { createPeLoadConfigService } from "./binaryDiagnostics/peLoadConfig.js";
 import { createPeUnwindRangesService } from "./binaryDiagnostics/peUnwindRanges.js";
@@ -512,6 +516,16 @@ const modules = {
     ({ providerEnvironment, platform }) =>
       createRizinDebugSessionManager(providerEnvironment, { platform }),
     (value) => value.closeAll(),
+  ),
+  lldbSessions: capability(
+    ({ providerEnvironment, platform }) =>
+      createLldbSessionManager(providerEnvironment, { platform }),
+    (value) => value.closeAll(),
+    ({ platform }) => ({
+      hostUnsupported: {
+        lldbDebugger: !lldbDebuggerHostSupported(platform),
+      },
+    }),
   ),
   android: service(
     ({ environment, options, settings }) =>

@@ -76,6 +76,7 @@ export const UNIT_LAYERS = Object.freeze(
       "java",
       "jeb",
       "kuna",
+      "lldb",
       "model",
       "native",
       "nuget",
@@ -346,6 +347,7 @@ export const ENTRY_FILES = Object.freeze(
       ],
       jeb: ["JebMcpConnection.ts", "JebProvider.ts", "JebProviderIdentity.ts"],
       kuna: ["KunaDoctor.ts", "KunaProvider.ts", "KunaProviderMetadata.ts"],
+      lldb: ["LldbProviderIdentity.ts", "LldbSessionManager.ts"],
       model: ["ModelArtifactProvider.ts", "ModelArtifactProviderIdentity.ts"],
       native: [
         "NativeMacOSProvider.ts",
