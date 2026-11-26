@@ -104,6 +104,7 @@ export const parseFailureAnalysisError = (
   operation: string,
   path: string,
   cause: unknown,
+  extra: Pick<AnalysisErrorOptions, "diagnostics"> = {},
 ): AnalysisTargetFailureError | undefined => {
   if (!(cause instanceof ParseFailureError)) return undefined;
   const { failure } = cause;
@@ -115,6 +116,7 @@ export const parseFailureAnalysisError = (
     case "truncated":
       return new AnalysisTargetFailureError(operation, path, failure, {
         cause,
+        ...extra,
       });
   }
 };
