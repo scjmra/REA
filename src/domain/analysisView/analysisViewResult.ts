@@ -220,6 +220,7 @@ import {
 import { dartAotSummaryViewResultSchema } from "./summarySchemas/dartAotSummarySchema.js";
 import { desktopApplicationSummaryViewResultSchema } from "./summarySchemas/desktopApplicationSummarySchema.js";
 import { devicetreeSummaryViewResultSchema } from "./summarySchemas/devicetreeSummarySchema.js";
+import { evtxArchiveSummaryViewResultSchema } from "./summarySchemas/evtxArchiveSummarySchema.js";
 import {
   uefiExtractionPageViewResultSchema,
   uefiExtractionSummaryViewResultSchema,
@@ -339,6 +340,7 @@ export {
   erlangBeamSummaryViewResultSchema,
   erlangBeamTableViewResultSchema,
   evmInterfaceSummaryViewResultSchema,
+  evtxArchiveSummaryViewResultSchema,
   featureTraceSummaryViewResultSchema,
   featureTraceViewResultSchema,
   fridaSessionStatusSummaryViewResultSchema,
@@ -438,6 +440,7 @@ const viewResultBase = {
     "trace_native_values",
     "match_native_functions",
     "procedure_references",
+    "inspect_evtx_archive",
   ]),
 } as const;
 
@@ -761,6 +764,7 @@ export const analysisViewResultSchema = z.discriminatedUnion("kind", [
     nativeValueTraceSummaryViewResultSchema,
     erlangBeamSummaryViewResultSchema,
     devicetreeSummaryViewResultSchema,
+    evtxArchiveSummaryViewResultSchema,
     uefiFirmwareSummaryViewResultSchema,
     uefiExtractionSummaryViewResultSchema,
     pythonPycSummaryViewResultSchema,
