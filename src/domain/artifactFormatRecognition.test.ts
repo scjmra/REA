@@ -143,6 +143,17 @@ it("recognizes a CrAU v2 payload after the uImage magic check", () => {
   });
 });
 
+it("recognizes an auditd log by its first record and leaves plain text alone", () => {
+  const record = Buffer.from(
+    "type=SYSCALL msg=audit(1700000000.123:1000): arch=c000003e syscall=59 success=yes\n",
+  );
+  expect(recognize(record)).toMatchObject({
+    state: "recognized",
+    format: "auditd-log",
+  });
+  expect(recognize(Buffer.from("just some text\nand more\n"))).toBeUndefined();
+});
+
 it("recognizes an Android sparse image by its 0xED26FF3A magic", () => {
   expect(recognize(mixedAndroidSparseImage())).toMatchObject({
     state: "recognized",
