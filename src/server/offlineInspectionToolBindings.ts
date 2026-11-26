@@ -35,6 +35,7 @@ import type { ReleaseExposureService } from "../application/releaseExposure/Rele
 import type { RustBinaryService } from "../application/rust/RustBinaryService.js";
 import type { SqliteDatabaseService } from "../application/sqlite/SqliteDatabaseService.js";
 import type { V8CodeCacheService } from "../application/v8CodeCache/V8CodeCacheService.js";
+import type { VsixPackageService } from "../application/vsix/VsixPackageService.js";
 import type { WasmArtifactService } from "../application/wasm/WasmArtifactService.js";
 import { compareWasmInterfaces } from "../application/wasm/WasmInterfaceComparisonService.js";
 import { ok } from "../domain/result.js";
@@ -212,6 +213,12 @@ export const OFFLINE_INSPECTION_TOOL_BINDINGS = {
       summary: (input, options) => service.inspect(input, options),
     },
   })) satisfies Bind<NugetNupkgService>,
+  vsixPackage: ((service) => ({
+    inspect_vsix_package: {
+      admission: "application",
+      summary: (input, options) => service.inspect(input, options),
+    },
+  })) satisfies Bind<VsixPackageService>,
   pythonPyc: ((service) => ({
     inspect_python_pyc: {
       admission: "application",
