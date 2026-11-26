@@ -23,7 +23,7 @@ import type { UnityFsMetadata } from "../domain/formatMetadata/packageAndGameMet
 import type { StableRegularFileDescriptor } from "../filesystem/RegularFile.js";
 import { UNITYFS_COMPRESSION_NONE } from "../domain/unityfsFormat.js";
 import {
-  decodeUnityFsLz4,
+  decodeUnityFsBlock,
   readUnityFsBlocksInfo,
   readUnityFsHeader,
   unityFsFormatFailure,
@@ -67,7 +67,11 @@ export class UnityFsArtifactReader implements ArtifactReader {
   #cachedBlock: { readonly index: number; readonly bytes: Buffer } | undefined;
   #closing = false;
 
-  constructor(path: string, admitted?: StableRegularFileDescriptor) {
+  constructor(
+    path: string,
+    admitted?: StableRegularFileDescriptor,
+    private readonly lzmaWorkerModulePath?: string,
+  ) {
     this.#source = new ArtifactFileSource(path, "UnityFS bundle", admitted);
   }
 
@@ -210,6 +214,7 @@ export class UnityFsArtifactReader implements ArtifactReader {
     const { dataHash, blocks, nodes, dataStart } = await readUnityFsBlocksInfo(
       handle,
       header,
+      this.#scope,
       signal,
     );
     const budget = artifactExpansionBudgetBytes(header.declaredSize);
@@ -396,10 +401,15 @@ export class UnityFsArtifactReader implements ArtifactReader {
       this.#dataStart + block.compressedStart + block.compressedSize,
       signal,
     );
-    const bytes = await decodeUnityFsLz4(
+    const bytes = await decodeUnityFsBlock(
+      block.compression,
       encoded,
       block.uncompressedSize,
-      signal,
+      {
+        resources: this.#scope,
+        signal,
+        workerModulePath: this.lzmaWorkerModulePath,
+      },
     );
     this.#assertOpen(signal);
     this.#cachedBlock = { index, bytes };

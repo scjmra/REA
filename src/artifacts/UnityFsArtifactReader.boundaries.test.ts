@@ -135,7 +135,7 @@ describe("UnityFS declared container bounds", () => {
     // A one-byte unsupported block declares more than the 256 MiB work floor.
     // Its bytes need not be decoded to reject the declared virtual extent.
     bytes.writeUInt32BE(256 * 1024 * 1024 + 1, 64 + 20);
-    bytes.writeUInt16BE(1, 64 + 28);
+    bytes.writeUInt16BE(4, 64 + 28);
     const reader = new UnityFsArtifactReader(
       await fixture(Buffer.concat([bytes, Buffer.alloc(1024 * 1024)])),
     );

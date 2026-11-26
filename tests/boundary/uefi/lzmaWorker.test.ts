@@ -13,7 +13,7 @@ const { compressFile } = createRequire(import.meta.url)("lzma-purejs") as {
   ): Uint8Array;
 };
 const workerPath = fileURLToPath(
-  new URL("../../../dist/uefi/UefiLzmaWorker.js", import.meta.url),
+  new URL("../../../dist/providers/LzmaWorker.js", import.meta.url),
 );
 
 type Decode = (bytes: Buffer, limit: number) => Promise<UefiDecodeResult>;
@@ -99,6 +99,16 @@ it("returns typed limit and framing refusals through stdio without losing the ne
         "range coder byte must be zero",
       ],
       [
+        "invalid coded data after a valid header",
+        Buffer.from(
+          "5d00100000030000000000000000ff9888a44a8e9ffff6638000",
+          "hex",
+        ),
+        1024,
+        "malformed",
+        "Error in data stream",
+      ],
+      [
         "oversized dictionary",
         dictionary,
         1024,
@@ -120,11 +130,31 @@ it("returns typed limit and framing refusals through stdio without losing the ne
         "Decompressed output exceeds the 16 byte budget",
       ],
     ] as const) {
-      expect(await decode(input, limit), label).toEqual({
+      const result = await decode(input, limit);
+      expect(result, label).toMatchObject({
         ok: false,
         reason,
         message: expect.stringContaining(message),
       });
+      if (reason === "output-limit") {
+        expect(result).toMatchObject({
+          limit:
+            label === "oversized dictionary"
+              ? {
+                  boundary: "dictionary_bytes",
+                  maximum: 64 * 1024 * 1024,
+                  required: 128 * 1024 * 1024,
+                }
+              : {
+                  boundary: "output_bytes",
+                  maximum: 16,
+                  required:
+                    label === "declared output budget"
+                      ? String(plain.length)
+                      : 17,
+                },
+        });
+      }
     }
     expectDecoded(await decode(valid, plain.length), plain, valid.length);
   });

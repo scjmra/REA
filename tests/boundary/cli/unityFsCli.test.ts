@@ -1,13 +1,109 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { expect } from "vitest";
 import { parseEvidence } from "../../../src/domain/evidence.js";
+import { artifactComparisonResultSchema } from "../../../src/domain/artifactComparison.js";
 import { artifactInspectionResultSchema } from "../../../src/domain/artifactInspection.js";
 import { artifactExtractionResultSchema } from "../../../src/domain/artifactGraph.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import { connectLocalToolsMcp } from "../../fixtures/localToolsMcp.js";
+import { parseMcpToolError } from "../../fixtures/mcpToolError.js";
 import { buildUnityFs } from "../../fixtures/unityfs.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
+
+// Windows uses the native job launcher instead of Node's child_process.spawn.
+cliTest.skipIf(process.platform === "win32").for([
+  ["EAGAIN", { resource: "capacity", exhausted: "processes" }],
+  ["ENOMEM", { resource: "capacity", exhausted: "memory" }],
+  ["heap", { resource: "memory" }],
+  ["exit", null],
+] as const)(
+  "reports a UnityFS worker %s failure consistently in CLI and MCP",
+  async ([failure, constraint], { cli }) => {
+    const root = await createTestTempDirectory("rea-unity-worker-failure-");
+    const path = join(root, "bundle");
+    const preload = join(root, "worker-failure.mjs");
+    await writeFile(
+      path,
+      buildUnityFs([{ path: "CAB", data: "abc" }], { blockCompression: 1 }),
+    );
+    await writeFile(
+      preload,
+      `
+import childProcess from "node:child_process";
+import { syncBuiltinESMExports } from "node:module";
+const spawn = childProcess.spawn;
+const failure = ${JSON.stringify(failure)};
+childProcess.spawn = (command, args, options) => {
+  if (args.at(-1) !== "--stdio" || !args.at(-2)?.endsWith("LzmaWorker.js"))
+    return spawn(command, args, options);
+  if (failure === "EAGAIN" || failure === "ENOMEM")
+    throw Object.assign(new Error("controlled worker launch refusal"), {
+      code: failure, syscall: "spawn " + command, path: command,
+    });
+  const diagnostic = failure === "heap"
+    ? "FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory"
+    : "controlled decoder exit";
+  return spawn(command, ["-e", \`
+    process.stdin.once("data", () =>
+      process.stderr.write(\${JSON.stringify(diagnostic)} + "\\\\n", () => {
+        process.exitCode = 1;
+        process.stdin.destroy();
+      }),
+    );
+  \`], options);
+};
+syncBuiltinESMExports();
+`,
+    );
+    const environment = {
+      NODE_OPTIONS: `--import=${pathToFileURL(preload).href}`,
+    };
+    const details =
+      constraint === null
+        ? {
+            reason: "unavailable",
+            detail: expect.stringContaining("controlled decoder exit"),
+          }
+        : {
+            resource: constraint.resource,
+            ...("exhausted" in constraint
+              ? {
+                  reported_limits: {
+                    spawn_error: failure,
+                    exhausted_resource: constraint.exhausted,
+                  },
+                  diagnostics: { system_code: failure },
+                }
+              : {
+                  diagnostics: {
+                    runtime_exhaustion_report: { runtime: "v8", area: "heap" },
+                  },
+                }),
+          };
+    const expected = {
+      code:
+        constraint === null
+          ? "artifact_operation_failed"
+          : "resource_constraint",
+      category: constraint === null ? "unavailable" : "resource_constraint",
+      details: { operation: "inspect_artifact", ...details },
+    };
+    const cliResult = await cli.run({
+      arguments: ["inspect-artifact", path, "--json"],
+      environment,
+    });
+    const { call } = await connectLocalToolsMcp(environment);
+    expect((await call("open_binary", { path })).isError).not.toBe(true);
+    const mcpResult = parseMcpToolError(await call("inspect_artifact", {}));
+    await call("close_binary", {});
+    expect(cliResult.exitCode, cliResult.stderr).toBe(1);
+    expect(cliResult.json).toMatchObject(expected);
+    expect(mcpResult.error).toMatchObject(expected);
+  },
+);
 
 cliTest.for([
   "fixed header",
@@ -97,15 +193,17 @@ cliTest.for([false, true])(
   },
 );
 
-cliTest(
-  "inspects and extracts UnityFS with virtual coordinates and retained unavailable members",
-  async ({ cli, onTestFinished }) => {
+cliTest.for([1, 3] as const)(
+  "inspects and extracts UnityFS with virtual coordinates and retained unavailable members (codec: %s)",
+  async (blockCompression, { cli, onTestFinished }) => {
     const root = await createTestTempDirectory("rea-unity-cli-");
     const path = join(root, "bundle");
     const payload = Buffer.from("serialized bytes");
     await writeFile(
       path,
-      buildUnityFs([{ path: "data..bin", data: payload, flags: 4 }]),
+      buildUnityFs([{ path: "data..bin", data: payload, flags: 4 }], {
+        blockCompression,
+      }),
     );
     const inspected = await cli.run({
       arguments: ["inspect-artifact", path, "--json"],
@@ -150,8 +248,8 @@ cliTest(
 
     await writeFile(
       path,
-      buildUnityFs([{ path: "CAB-lzma", data: payload }], {
-        blockCompression: 1,
+      buildUnityFs([{ path: "CAB-unsupported", data: payload }], {
+        blockCompression: 4,
       }),
     );
     const unavailable = await cli.run({
@@ -164,13 +262,13 @@ cliTest(
     expect(partial.coverage).toMatchObject({ status: "unknown" });
     expect(partial.occurrences).toContainEqual(
       expect.objectContaining({
-        logical_path: "CAB-lzma",
+        logical_path: "CAB-unsupported",
         hash_status: "unavailable",
         artifact_id: null,
       }),
     );
     expect(partial.limitations.join(" ")).toContain(
-      "compression 1 is unsupported",
+      "compression 4 is unsupported",
     );
   },
 );
@@ -250,6 +348,81 @@ cliTest(
             expect.objectContaining({ offset: 0, bytes: 64 }),
             expect.objectContaining({ offset: 64, bytes: 2_016 }),
           ]),
+        }),
+      ]),
+    });
+  },
+);
+
+cliTest(
+  "compares decoded UnityFS LZMA members against an LZ4 bundle without unknown hashes",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-unity-lzma-compare-");
+    const leftPath = join(root, "left.bundle");
+    const rightPath = join(root, "right.bundle");
+    await writeFile(
+      leftPath,
+      buildUnityFs(
+        [
+          { path: "same.bin", data: "unchanged" },
+          { path: "changed.bin", data: "old payload" },
+        ],
+        { blockCompression: 1 },
+      ),
+    );
+    await writeFile(
+      rightPath,
+      buildUnityFs(
+        [
+          { path: "same.bin", data: "unchanged" },
+          { path: "changed.bin", data: "new payload" },
+        ],
+        { blockCompression: 3 },
+      ),
+    );
+    const left = await cli.run({
+      arguments: [
+        "inspect-artifact",
+        leftPath,
+        "--detail",
+        "complete",
+        "--json",
+      ],
+    });
+    const right = await cli.run({
+      arguments: [
+        "inspect-artifact",
+        rightPath,
+        "--detail",
+        "complete",
+        "--json",
+      ],
+    });
+    expect(left.exitCode, left.stderr).toBe(0);
+    expect(right.exitCode, right.stderr).toBe(0);
+    const request = join(root, "compare.json");
+    await writeFile(
+      request,
+      JSON.stringify({
+        left: parseEvidence(left.json),
+        right: parseEvidence(right.json),
+      }),
+    );
+    const compared = await cli.run({
+      arguments: ["compare-artifacts", request, "--json"],
+    });
+    expect(compared.exitCode, compared.stderr).toBe(0);
+    expect(
+      artifactComparisonResultSchema.parse(
+        parseEvidence(compared.json).normalized_result,
+      ),
+    ).toMatchObject({
+      status: "changed",
+      summary: { unknown: 0, unchanged: 1, changed: 2 },
+      changes: expect.arrayContaining([
+        expect.objectContaining({
+          classification: "changed",
+          logical_path: "changed.bin",
         }),
       ]),
     });

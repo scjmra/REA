@@ -239,9 +239,9 @@ describe("UnityFS unavailable and malformed directories", () => {
     );
   });
 
-  it("refuses an LZMA-compressed member block while retaining the directory", async () => {
+  it("refuses an unknown member codec while retaining the directory", async () => {
     await withReader(
-      buildUnityFs(members, { blockCompression: 1 }),
+      buildUnityFs(members, { blockCompression: 4 }),
       async (reader) => {
         const [entry] = await collectEntries(reader);
         if (entry === undefined) throw new Error("expected one entry");
