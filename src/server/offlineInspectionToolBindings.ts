@@ -16,6 +16,7 @@ import type { NativeExportsService } from "../application/binaryDiagnostics/Nati
 import type { NativeInitializersService } from "../application/binaryDiagnostics/NativeInitializersService.js";
 import type { PeCertificatesService } from "../application/binaryDiagnostics/PeCertificatesService.js";
 import type { PeImportsService } from "../application/binaryDiagnostics/PeImportsService.js";
+import type { PeRichHeaderService } from "../application/binaryDiagnostics/PeRichHeaderService.js";
 import type { PeLoadConfigService } from "../application/binaryDiagnostics/PeLoadConfigService.js";
 import type { PeUnwindRangesService } from "../application/binaryDiagnostics/PeUnwindRangesService.js";
 import type { PeResourcesService } from "../application/binaryDiagnostics/PeResourcesService.js";
@@ -152,6 +153,12 @@ export const OFFLINE_INSPECTION_TOOL_BINDINGS = {
       run: (input, options) => service.inspect(input, options),
     },
   })) satisfies Bind<PeImportsService>,
+  peRichHeader: ((service) => ({
+    inspect_pe_rich_header: {
+      admission: "application",
+      run: (input, options) => service.inspect(input, options),
+    },
+  })) satisfies Bind<PeRichHeaderService>,
   windowsShortcut: ((service) => ({
     inspect_windows_shortcut: {
       admission: "sdk",
