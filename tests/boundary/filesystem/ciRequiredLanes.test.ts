@@ -1304,6 +1304,8 @@ it("requires every client schema engine in the build job of every code change", 
 
 it.skipIf(process.platform === "win32").each([
   ["true", "180", ["0"]],
+  ["true", "90", ["124", "0"]],
+  ["true", "0", ["0"]],
   ["false", "120", ["0"]],
   // A slow download resumes from APT's cache on the next bounded attempt.
   ["false", "120", ["124", "0"]],
@@ -1360,6 +1362,12 @@ it.skipIf(process.platform === "win32").each([
       .trim()
       .split("\n")
       .filter((line) => !line.startsWith("::error::"));
+    if (seconds === "0") {
+      expect(result.code).toBe(1);
+      expect(result.stdout).toContain("deadline must be a positive integer");
+      expect(commands).toEqual([]);
+      return;
+    }
     const last = statuses.at(-1)!;
     expect(result.code).toBe(Number(last));
     expect(commands).toEqual([
