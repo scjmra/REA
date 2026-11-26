@@ -108,6 +108,10 @@ import {
   ghidraRiscvLoadPreparationLimitations,
   ghidraRiscvLoadPreparationParameters,
 } from "./GhidraRiscvProfile.js";
+import {
+  ghidraLoongArchLimitations,
+  ghidraLoongArchProfileMismatchReason,
+} from "./GhidraLoongArchProfile.js";
 import { ghidraPePdbLimitations } from "./GhidraPeProfile.js";
 import {
   ghidraKnownProviderDefectLimitations,
@@ -558,6 +562,19 @@ export const createGhidraProviderClient = (input: {
     );
   // Both caller-selected and provider-pinned languages use the validated
   // committed slot; the profile cannot supply its own applicability proof.
+  const loongarchProfileMismatch = ghidraLoongArchProfileMismatchReason(
+    target,
+    committedProfile.parameters,
+    project !== undefined &&
+      committedProfile.parameters.import_mode ===
+        "existing-project-private-copy-v1",
+  );
+  if (loongarchProfileMismatch !== null)
+    return err(
+      new ProviderAdapterError("ghidra", "open_binary", {
+        diagnostics: { reason: loongarchProfileMismatch },
+      }),
+    );
   const mipsProfileMismatch = ghidraMipsProfileMismatchReason(
     target,
     committedProfile.parameters,
@@ -632,6 +649,7 @@ export const createGhidraProviderClient = (input: {
     ...(target.format === "raw-binary" && rawLanguage !== undefined
       ? ghidraRawBinaryLimitations(target.rawLoad, rawLanguage)
       : []),
+    ...ghidraLoongArchLimitations(target),
     ...(target.architecture === "mips"
       ? (target.mips.limitations ?? []).map((limitation) => limitation.message)
       : []),
