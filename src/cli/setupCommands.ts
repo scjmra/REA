@@ -326,7 +326,11 @@ const runSetupCommand = async (
   // and no format was chosen, so that terminal gets a rendered summary instead.
   else if (!input.formatExplicit && process.stdout.isTTY === true) {
     if (result.status === "planned")
-      renderSetupDryRun(result.plannedActions, result.remediation);
+      renderSetupDryRun(
+        result.plannedActions,
+        result.remediation,
+        result.hopperInstallUnavailable,
+      );
     else renderInteractiveSetupResult(result, environment);
   }
   return result;
