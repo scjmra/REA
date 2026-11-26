@@ -281,6 +281,7 @@ export function* collectElectronWrappedCallPathsSteps(
     identity,
     () => false,
   );
+  yield* resolver.prepareSteps();
   const paths: ElectronCallPath[] = [];
   const seen = new Set<string>();
   const unconditionalRegistrations = new Set<string>();
